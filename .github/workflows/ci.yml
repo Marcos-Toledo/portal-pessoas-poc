@@ -1,9 +1,14 @@
 # CI do monorepo — demonstra "pipelines independentes no mesmo repo".
 #
 # Ideia central: o Turborepo calcula quais pacotes foram afetados pelo diff
-# (--affected) e cada app só é buildado/testado/publicado se mudou ou se um
-# pacote compartilhado de que ele depende mudou. Um commit da squad de ponto
-# não dispara build nem deploy das outras jornadas.
+# e cada app só é buildado/testado/publicado se mudou ou se um pacote
+# compartilhado de que ele depende mudou. Um commit da squad de ponto não
+# dispara build nem deploy das outras jornadas.
+#
+# Detalhe importante: `turbo --affected` compara com a base branch — em PRs
+# isso é o merge-base correto, mas num push para `main` o HEAD JÁ É a base,
+# então --affected retornaria vazio. Por isso, em pushes usamos o range
+# explícito `github.event.before...HEAD` (--filter=[sha...HEAD]).
 
 name: CI
 
@@ -19,14 +24,13 @@ concurrency:
 jobs:
   # ------------------------------------------------------------------
   # 1. Verificação: typecheck + build apenas do que foi afetado.
-  #    Equivalente a `turbo run typecheck build --filter=...[origin/main]`.
   # ------------------------------------------------------------------
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # necessário para o --affected comparar com o merge-base
+          fetch-depth: 0 # necessário para comparar com o merge-base / sha anterior
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -34,13 +38,31 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Fetch da base (PRs precisam do merge-base local)
+        if: github.event_name == 'pull_request'
+        run: git fetch origin ${{ github.base_ref }} --depth=50 || true
+
       - run: pnpm install --frozen-lockfile
 
       - name: Pacotes afetados por este diff
-        run: pnpm turbo ls --affected
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pnpm turbo ls --affected
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            pnpm turbo ls --filter="[${{ github.event.before }}...HEAD]"
+          else
+            pnpm turbo ls   # primeiro push: tudo
+          fi
 
       - name: Typecheck + build (somente afetados)
-        run: pnpm turbo run typecheck build --affected
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pnpm turbo run typecheck build --affected
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            pnpm turbo run typecheck build --filter="[${{ github.event.before }}...HEAD]"
+          else
+            pnpm turbo run typecheck build   # primeiro push: tudo
+          fi
 
   # ------------------------------------------------------------------
   # 2. Deploy independente por app (só em main).
@@ -72,8 +94,12 @@ jobs:
 
       - name: Detecta se @portal/${{ matrix.app }} foi afetado
         id: check
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
-          if pnpm turbo ls --affected | grep -qx "@portal/${{ matrix.app }}"; then
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"   # primeiro push: publica tudo
+          elif pnpm turbo ls --filter="[$BEFORE...HEAD]" | grep -q "@portal/${{ matrix.app }} "; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
