@@ -18,18 +18,20 @@ export const colors = {
   warning: '#d97706',
 } as const;
 
+// Numéricos para RN (StyleSheet) — no web, os mesmos valores saem
+// como px via tokens.css (CSS custom properties).
 export const spacing = {
-  xs: '4px',
-  sm: '8px',
-  md: '16px',
-  lg: '24px',
-  xl: '32px',
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
 } as const;
 
 export const radius = {
-  sm: '4px',
-  md: '8px',
-  lg: '16px',
+  sm: 4,
+  md: 8,
+  lg: 16,
 } as const;
 
 export const typography = {

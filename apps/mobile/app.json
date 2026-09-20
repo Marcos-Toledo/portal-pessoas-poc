@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Portal Pessoas",
+    "slug": "portal-pessoas-poc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "portalpessoas",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#f1f5f9"
+  }
+}

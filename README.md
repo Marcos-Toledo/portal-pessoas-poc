@@ -30,6 +30,18 @@ Isso sobe todos os processos via Turborepo:
 
 Outros comandos: `pnpm build` (build de tudo), `pnpm typecheck`.
 
+### Mobile (esqueleto)
+
+```bash
+pnpm --filter @portal/mobile start   # Expo: abrir no Expo Go ou simulador
+```
+
+Requer o BFF de pé (`pnpm --filter @portal/bff dev`). O app demonstra o
+reuso transversal: consome `@portal/api-client`, `@portal/core` e
+`@portal/design-tokens` — os mesmos pacotes do web. Em produção, as
+jornadas seriam bundles federados via **Re.Pack** (Module Federation
+para RN) atualizados OTA, mantendo o deploy independente por squad.
+
 ## O que a POC demonstra (mapeado ao case)
 
 - **Shell desacoplado**: não importa código de nenhuma jornada. Descobre os
@@ -74,6 +86,7 @@ apps/
   mfe-beneficios/   # Remote (squad B): benefícios
   legacy/           # Simula sistema legado em origem separada
   bff/              # BFF: manifest, flags, APIs mock, coleta de telemetria
+  mobile/           # Shell mobile (Expo/RN): camada nativa mínima
 packages/
   core/             # Contratos: manifest, MountContext, EventBus, telemetry
   design-tokens/    # Tokens (TS + CSS vars)
@@ -102,8 +115,9 @@ packages/
 
 ## Fora do escopo da POC (próximos passos reais)
 
-- Mobile: React Native + Re.Pack para federação de verdade no app
-  (fallback: Expo + pacotes compartilhados + EAS Update).
+- Mobile: o esqueleto Expo já consome os pacotes compartilhados; o
+  próximo passo é Re.Pack para federação de verdade no app (fallback:
+  pacotes compartilhados + EAS Update, com deploy coordenado).
 - Testes: contract tests do contrato `mount`, E2E Playwright, visual
   regression no Storybook.
 - Versionamento SemVer do manifest e dos contratos de eventos
