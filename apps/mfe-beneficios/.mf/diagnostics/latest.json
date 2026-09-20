@@ -1,0 +1,10 @@
+{
+  "latestErrorEvent": {
+    "code": "TYPE-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"\\\"/Users/marcostoledo/Library/Application Support/Herd/config/nvm/versions/node/v22.23.2/bin/node\\\" /Users/marcostoledo/Projetos/Pessoais/portal-pessoas-poc/node_modules/.pnpm/typescript@5.6.3/node_modules/typescript/bin/tsc --project /Users/marcostoledo/Projetos/Pessoais/portal-pessoas-poc/apps/mfe-beneficios/node_modules/.federation/tsconfig.ebc5c91babceac6be2b9ba09a46c3e6d.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "args": {
+      "cmd": "\"/Users/marcostoledo/Library/Application Support/Herd/config/nvm/versions/node/v22.23.2/bin/node\" /Users/marcostoledo/Projetos/Pessoais/portal-pessoas-poc/node_modules/.pnpm/typescript@5.6.3/node_modules/typescript/bin/tsc --project /Users/marcostoledo/Projetos/Pessoais/portal-pessoas-poc/apps/mfe-beneficios/node_modules/.federation/tsconfig.ebc5c91babceac6be2b9ba09a46c3e6d.json"
+    },
+    "timestamp": 1789931181363
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@portal/mfe-ponto",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5001 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5001 --strictPort",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@portal/api-client": "workspace:*",
+    "@portal/core": "workspace:*",
+    "@portal/design-tokens": "workspace:*",
+    "@portal/ui": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@module-federation/vite": "^1.22.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.3",
+    "vite": "^6.3.5"
+  }
+}
