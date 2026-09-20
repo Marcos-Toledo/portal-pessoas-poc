@@ -55,7 +55,7 @@ export function App({ ctx }: { ctx: MountContext }) {
     <div style={{ display: "grid", gap: "var(--portal-space-md)" }}>
       <Card title="Registro de Ponto">
         <p style={{ color: "var(--portal-color-text-muted)", marginTop: 0 }}>
-          Olá, <b>{ctx.user.name}</b>. Registre sua batida abaixo.
+          Olá, {ctx.user.name}. Registre sua batida abaixo.
         </p>
         <Button onPress={registrar} disabled={loading} size="lg">
           {loading ? "Registrando..." : "Registrar ponto agora"}
