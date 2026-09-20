@@ -25,7 +25,11 @@ import { createPortalClient } from '@portal/api-client';
 import { createTelemetry, type JourneyManifestEntry } from '@portal/core';
 import { colors, spacing } from '@portal/design-tokens';
 
-const API_BASE_URL = 'http://localhost:4000';
+// hostUri aponta para a maquina que roda o Metro — resolve localhost,
+// emulador Android e dispositivo fisico na mesma rede sem configuracao.
+import Constants from 'expo-constants';
+const host = Constants.expoConfig?.hostUri?.split(':')[0] ?? 'localhost';
+const API_BASE_URL = `http://${host}:4000`;
 const AUTH_TOKEN = 'sso-token-mock.eyJzdWIiOiJ1LTEwMDEifQ.assinatura';
 
 const client = createPortalClient(API_BASE_URL, () => AUTH_TOKEN);

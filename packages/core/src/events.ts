@@ -5,9 +5,11 @@
  * nunca acontece via estado global compartilhado ou imports cruzados.
  * Todos os eventos são contratos versionados neste pacote.
  *
- * Em produção, os payloads seriam validados em runtime com JSON Schema
- * ou Zod — tipos TS sozinhos não protegem fronteiras entre versões
- * diferentes de pacotes.
+ * Implementação: emitter in-process próprio (não DOM EventTarget) para
+ * rodar identico no browser e no Hermes/React Native — que não expõe
+ * EventTarget global. Em produção, os payloads seriam validados em
+ * runtime com JSON Schema ou Zod: tipos TS sozinhos não protegem
+ * fronteiras entre versões diferentes de pacotes.
  */
 export type PortalEventMap = {
   'notification:received': {
@@ -22,23 +24,31 @@ export type PortalEventMap = {
   'session:logout': { reason: string };
 };
 
-export class TypedEventBus {
-  private static target = new EventTarget();
+type AnyHandler = (detail: unknown) => void;
 
+const listeners = new Map<keyof PortalEventMap, Set<AnyHandler>>();
+
+export class TypedEventBus {
   static emit<K extends keyof PortalEventMap>(
     event: K,
     detail: PortalEventMap[K],
   ): void {
-    this.target.dispatchEvent(new CustomEvent(event, { detail }));
+    listeners.get(event)?.forEach((handler) => handler(detail));
   }
 
   static on<K extends keyof PortalEventMap>(
     event: K,
     handler: (detail: PortalEventMap[K]) => void,
   ): () => void {
-    const listener = (e: Event) =>
-      handler((e as CustomEvent<PortalEventMap[K]>).detail);
-    this.target.addEventListener(event, listener);
-    return () => this.target.removeEventListener(event, listener);
+    let set = listeners.get(event);
+    if (!set) {
+      set = new Set();
+      listeners.set(event, set);
+    }
+    const h = handler as AnyHandler;
+    set.add(h);
+    return () => {
+      set.delete(h);
+    };
   }
 }
