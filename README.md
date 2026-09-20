@@ -33,10 +33,17 @@ Outros comandos: `pnpm build` (build de tudo), `pnpm typecheck`.
 ### Mobile (esqueleto)
 
 ```bash
-pnpm --filter @portal/mobile start   # Expo: abrir no Expo Go ou simulador
+pnpm --filter @portal/mobile start   # Expo: teclas a (Android), i (iOS), w (web)
+pnpm --filter @portal/mobile ios     # ou direto no simulador iOS
+pnpm --filter @portal/mobile android # ou direto no emulador Android
+pnpm --filter @portal/mobile web     # no navegador via react-native-web (:8081)
 ```
 
-Requer o BFF de pé (`pnpm --filter @portal/bff dev`). O app demonstra o
+Requer o BFF de pé (`pnpm --filter @portal/bff dev`). Android precisa de
+`ANDROID_HOME`/`platform-tools` no PATH e Expo Go compatível com o SDK
+(Expo instala sozinho no emulador). iOS: **Xcode 27 trocou o
+`Simulator.app` pelo `DeviceHub.app`** — CLIs antigas do Expo falham com
+"Can't determine id of Simulator app"; o SDK 57+ já reconhece o DeviceHub. O app demonstra o
 reuso transversal: consome `@portal/api-client`, `@portal/core` e
 `@portal/design-tokens` — os mesmos pacotes do web. Em produção, as
 jornadas seriam bundles federados via **Re.Pack** (Module Federation
