@@ -1,0 +1,97 @@
+# CI do monorepo — demonstra "pipelines independentes no mesmo repo".
+#
+# Ideia central: o Turborepo calcula quais pacotes foram afetados pelo diff
+# (--affected) e cada app só é buildado/testado/publicado se mudou ou se um
+# pacote compartilhado de que ele depende mudou. Um commit da squad de ponto
+# não dispara build nem deploy das outras jornadas.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. Verificação: typecheck + build apenas do que foi afetado.
+  #    Equivalente a `turbo run typecheck build --filter=...[origin/main]`.
+  # ------------------------------------------------------------------
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # necessário para o --affected comparar com o merge-base
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Pacotes afetados por este diff
+        run: pnpm turbo ls --affected
+
+      - name: Typecheck + build (somente afetados)
+        run: pnpm turbo run typecheck build --affected
+
+  # ------------------------------------------------------------------
+  # 2. Deploy independente por app (só em main).
+  #    Cada app é um job na matrix: se o app não foi afetado, o job
+  #    termina em segundos sem publicar nada. Em produção, cada squad
+  #    teria aqui o upload do remoteEntry.js versionado para a CDN e a
+  #    atualização do manifest do Journey Registry — sem tocar no shell.
+  # ------------------------------------------------------------------
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [shell, mfe-ponto, mfe-beneficios, bff, legacy]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Detecta se @portal/${{ matrix.app }} foi afetado
+        id: check
+        run: |
+          if pnpm turbo ls --affected | grep -qx "@portal/${{ matrix.app }}"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build de @portal/${{ matrix.app }}
+        if: steps.check.outputs.changed == 'true'
+        run: pnpm turbo run build --filter=@portal/${{ matrix.app }}
+
+      - name: Publica artefato de @portal/${{ matrix.app }}
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          echo "Simulação de deploy independente:"
+          echo "- MFEs fariam upload de dist/ para a CDN versionada"
+          echo "  (ex.: /${{ matrix.app }}/${{ github.sha }}/remoteEntry.js)"
+          echo "- e atualizariam a entrada do manifest no Journey Registry."
+          echo "- BFF/shell/legacy seguiriam seus próprios fluxos de release."
+
+      - name: Nada a publicar
+        if: steps.check.outputs.changed == 'false'
+        run: echo "@portal/${{ matrix.app }} não foi afetado — deploy pulado."
