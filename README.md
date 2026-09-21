@@ -30,7 +30,7 @@ Isso sobe todos os processos via Turborepo:
 
 Outros comandos: `pnpm build` (build de tudo), `pnpm typecheck`.
 
-### Mobile (esqueleto)
+### Mobile
 
 ```bash
 pnpm --filter @portal/mobile start   # Expo: teclas a (Android), i (iOS), w (web)
@@ -39,15 +39,20 @@ pnpm --filter @portal/mobile android # ou direto no emulador Android
 pnpm --filter @portal/mobile web     # no navegador via react-native-web (:8081)
 ```
 
-Requer o BFF de pé (`pnpm --filter @portal/bff dev`). Android precisa de
-`ANDROID_HOME`/`platform-tools` no PATH e Expo Go compatível com o SDK
-(Expo instala sozinho no emulador). iOS: **Xcode 27 trocou o
+Requer o BFF de pé (`pnpm --filter @portal/bff dev`) e, para as jornadas
+legadas, o `apps/legacy` (`pnpm --filter @portal/legacy dev`). Android
+precisa de `ANDROID_HOME`/`platform-tools` no PATH e Expo Go compatível
+com o SDK (Expo instala sozinho no emulador). iOS: **o Xcode 27 trocou o
 `Simulator.app` pelo `DeviceHub.app`** — CLIs antigas do Expo falham com
-"Can't determine id of Simulator app"; o SDK 57+ já reconhece o DeviceHub. O app demonstra o
-reuso transversal: consome `@portal/api-client`, `@portal/core` e
-`@portal/design-tokens` — os mesmos pacotes do web. Em produção, as
-jornadas seriam bundles federados via **Re.Pack** (Module Federation
-para RN) atualizados OTA, mantendo o deploy independente por squad.
+"Can't determine id of Simulator app"; o projeto usa **SDK 57**, cuja CLI
+já reconhece o DeviceHub.
+
+O app navega de verdade: catálogo (mesmo manifest do web) → stack
+navigator → jornadas `mfe` abrem telas nativas (`src/journeys/`) e
+jornadas `legacy` abrem em WebView — mesmo papel do iframe no shell web.
+Em produção, as jornadas nativas seriam bundles federados via **Re.Pack**
+(Module Federation para RN) atualizados OTA, mantendo o deploy
+independente por squad.
 
 ## O que a POC demonstra (mapeado ao case)
 
@@ -68,7 +73,8 @@ para RN) atualizados OTA, mantendo o deploy independente por squad.
 - **Contrato de montagem agnóstico**: MFEs expõem `mount(el, ctx)` em vez de
   componentes React — o shell não acopla no framework interno da jornada.
 - **Comunicação desacoplada**: `@portal/core` expõe `TypedEventBus`
-  (CustomEvent tipado). Ex.: registrar ponto no MFE emite
+  (emitter tipado in-process, portável web/Hermes). Ex.: registrar ponto
+  no MFE emite
   `notification:received`, que o sino do shell exibe — sem import cruzado.
 - **Contexto injetado**: `MountContext` (user, token, featureFlags, telemetry,
   eventBus) é passado no mount — nada de singleton global de auth nos MFEs.
@@ -83,6 +89,12 @@ para RN) atualizados OTA, mantendo o deploy independente por squad.
 - **Isolamento de falhas**: cada jornada renderiza dentro de um Error
   Boundary; falha de um remote mostra fallback sem derrubar o portal.
 - **Busca global**: header consulta `/api/search` no BFF.
+- **Mobile com navegação real**: catálogo do mesmo manifest, jornadas
+  modernas como telas nativas (reuso de `api-client`/`core`/tokens) e
+  legado em WebView.
+- **CI por app**: `.github/workflows/ci.yml` — `turbo --affected` no
+  verify; matrix de deploy que só publica o app afetado pelo diff
+  (push compara `before...HEAD`; PR usa merge-base).
 
 ## Estrutura
 
@@ -93,10 +105,11 @@ apps/
   mfe-beneficios/   # Remote (squad B): benefícios
   legacy/           # Simula sistema legado em origem separada
   bff/              # BFF: manifest, flags, APIs mock, coleta de telemetria
-  mobile/           # Shell mobile (Expo/RN): camada nativa mínima
+  mobile/           # Shell mobile (Expo SDK 57): navegacao + dispatcher
+                    #   screens/ = shell; journeys/ = jornadas nativas
 packages/
   core/             # Contratos: manifest, MountContext, EventBus, telemetry
-  design-tokens/    # Tokens (TS + CSS vars)
+  design-tokens/    # Tokens (TS + CSS vars) + base.css (reset/fonte/fundo)
   ui/               # Componentes base compartilhados
   api-client/       # Cliente HTTP padronizado do BFF
 ```
@@ -108,13 +121,18 @@ packages/
   confiável, e SSR não agrega num portal autenticado de intranet.
 - **`mount()` contract** em vez de componente exposto: troca robustez de
   isolamento por um pouco de bundle extra; permite migrar um MFE de stack no
-  futuro sem tocar no shell. Singletons `react`/`react-dom` ficam configurados
-  como otimização (shared scope), não como requisito.
+  futuro sem tocar no shell. `react` fica singleton no shared scope;
+  `react-dom` fica **fora** — o proxy de dev do plugin resolvia
+  `react-dom/client` para um chunk sem `__SECRET_INTERNALS` e quebrava o
+  entry standalone dos MFEs. Cada remote embute seu react-dom (~140KB).
 - **Registry no BFF** (não estático no shell): é o que viabiliza "adicionar
   jornada sem rebuild do core" e rollback por versão.
 - **Iframe + origem separada para legado**: em produção o legado ficaria num
   subdomínio próprio — `allow-scripts` + `allow-same-origin` na mesma origem
   permitiria ao frame remover o próprio sandbox.
+- **Remote auto-suficiente**: cada MFE importa `tokens.css` + `base.css`
+  no `mount` — o CSS viaja no remoteEntry, então a jornada não depende de
+  estilo do host e fica idêntica standalone (:5001/:5002) e federada.
 - **Monorepo**: squads ganham contratos compartilhados e refactors atômicos;
   isolamento vem de pipelines por app + boundaries (em produção: ESLint
   `no-restricted-imports` entre MFEs, CODEOWNERS). Alternativa documentada:
@@ -122,7 +140,7 @@ packages/
 
 ## Fora do escopo da POC (próximos passos reais)
 
-- Mobile: o esqueleto Expo já consome os pacotes compartilhados; o
+- Mobile: o shell Expo já navega e consome os pacotes compartilhados; o
   próximo passo é Re.Pack para federação de verdade no app (fallback:
   pacotes compartilhados + EAS Update, com deploy coordenado).
 - Testes: contract tests do contrato `mount`, E2E Playwright, visual
