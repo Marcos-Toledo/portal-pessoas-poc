@@ -12,8 +12,11 @@ export default defineConfig({
         './mount': './src/mount.tsx',
       },
       shared: {
+        // react-dom fica fora do shared: o proxy de dev do plugin resolve
+        // react-dom/client para um chunk sem __SECRET_INTERNALS e quebra o
+        // entry standalone. Cada remote embute seu react-dom (~140KB); o que
+        // precisa ser singleton e o react (dispatcher de hooks/context).
         react: { singleton: true, requiredVersion: '^18.3.1' },
-        'react-dom': { singleton: true, requiredVersion: '^18.3.1' },
       },
     }),
   ],
