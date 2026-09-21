@@ -1,4 +1,18 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // O workspace tem dois React: web em 18, mobile em 19. O pnpm
+    // hoistou @types/react@19 em .pnpm/node_modules e os d.ts do
+    // react-router resolviam 'react' para la, quebrando o JSX do shell.
+    // paths fixa a resolucao de tipos na copia local (18).
+    "baseUrl": ".",
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react-dom/client": ["./node_modules/@types/react-dom/client"]
+    }
+  },
   "include": ["src", "vite.config.ts"]
 }

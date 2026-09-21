@@ -1,3 +1,3 @@
-* { box-sizing: border-box; }
-html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
-a { color: var(--portal-color-primary); }
+/* Base visual compartilhada (design-tokens) — resets + tipografia/fundo.
+ * Os resets antigos deste arquivo vivem agora em base.css. */
+@import '@portal/design-tokens/base.css';

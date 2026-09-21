@@ -1,0 +1,12 @@
+/* Estilos base consumidos por qualquer superficie que use o design system.
+ * MFEs importam este arquivo no entry standalone E no mount — assim o
+ * remote carrega a propria base visual quando federado (bundle
+ * auto-suficiente) e fica identico nos dois modos. */
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
+body {
+  font-family: var(--portal-font-family);
+  color: var(--portal-color-text);
+  background: var(--portal-color-surface-alt);
+}
+a { color: var(--portal-color-primary); }

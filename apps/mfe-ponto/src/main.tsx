@@ -9,6 +9,7 @@ import {
   type MountContext,
 } from '@portal/core';
 import '@portal/design-tokens/tokens.css';
+import '@portal/design-tokens/base.css';
 import { App } from './App';
 
 const ctx: MountContext = {
@@ -20,4 +21,14 @@ const ctx: MountContext = {
   eventBus: TypedEventBus,
 };
 
-createRoot(document.getElementById('root')!).render(<App ctx={ctx} />);
+createRoot(document.getElementById('root')!).render(
+  <div
+    style={{
+      maxWidth: 960,
+      margin: '0 auto',
+      padding: 'var(--portal-space-lg)',
+    }}
+  >
+    <App ctx={ctx} />
+  </div>,
+);
